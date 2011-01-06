@@ -1,15 +1,15 @@
 
 window = this; // SHA implementation was written for the browser, lazy workaround
 
+load('lib/underscore.js');
+load('lib/sha.js');
 load('helpers.js');
-load('underscore.js');
-load('sha.js');
 
 // API data
 var SECRET = 'UsC17sDqyquzCfSOBMVczRjcTEEcifbB3G5gmSB98';
 var KEY = '3aMDHafmoqUfWQRCTHHMtQ';
 
-load('oauth.js');
+load('lib/oauth.js');
 
 /* --------------------------- */
 
@@ -53,7 +53,7 @@ function oauthRequest(url, params){
 	
 	if (!tweets.length){
 	  write(ERROR_API.red());
-	  exit;
+	  system.exit();
 	}
 	return tweets;
 };
@@ -63,12 +63,13 @@ function oauthRequest(url, params){
 // cli methods
 
 clit = {
+  
   // get most recent tweets
   get: function(){
     getConfig();
     
 		var tweets = oauthRequest('http://api.twitter.com/1/statuses/home_timeline.json', {
-		  count: +args[1] || 10
+		  count: +args[1] || 15
 		});
 		
 		writeln();
@@ -77,11 +78,38 @@ clit = {
 		});
 		
   },
+  
+  // twitter search
+  search: function(){
+    getConfig();
+    
+    var limit = (!isNaN(args[1]) && args[1] < 101) ? args[1] : false;
+    
+    var url = 'http://search.twitter.com/search.json?' + serialize({
+      rpp: limit || 15
+  	  , q: args.slice(limit ? 2 : 1).join(' ')
+    });
+    
+    var req = new Stream(url);
+    var tweets = JSON.parse( req.readText() );
+    
+    if (!tweets || !tweets.results){
+  	  write(ERROR_API.red());
+  	  system.exit();
+  	}
+		
+		writeln();
+		tweets.results.forEach(function(tweet,i){				
+			writeln(tweet.from_user.yellow(1) + ': ' + tweet.text.white() + '\n' + relativeTime(tweet.created_at).magenta()+'\n');
+		});
+  },
+  
   // show local keys
   data: function(){
     getConfig();
   	prettyPrint( dados );
   },
+  
   // post new tweets
   post: function(){
     
@@ -120,20 +148,35 @@ clit = {
 		
 		writeln(oauth.readText().toString().cyan()+colors.reset);
   },
-  pin: function(){
-    var pin = args[1];
-		insertPin(pin);
-  },
+  
+  // authorize app via OAuth
   authorize: function(){
 
-    var req_token = oauthRequest('http://api.twitter.com/oauth/request_token');
+    var data = {
+  		  oauth_callback: 'oob'
+  		, oauth_consumer_key: KEY
+  		, oauth_nonce: generateNonce()
+  		, oauth_timestamp: Math.floor(+new Date()/1000)
+  		, oauth_signature_method: 'HMAC-SHA1'
+  		, oauth_version: '1.0'
+  	}
+
+  	data.oauth_signature = HMACSHA1(SECRET+'&', signature('GET','http://api.twitter.com/oauth/request_token', data));
+
+  	var oauth = new Stream('http://api.twitter.com/oauth/request_token', '1', {
+  		'Authorization': 'OAuth ' + serializeHeader(data)
+  	});
+
   	var tokens = new Record;
-  	req_token.readList(tokens, '&', '=');
+  	oauth.readList(tokens, '&', '=');
   	//writeln(tokens.get('oauth_token'));
 
-  	system.execute('open http://api.twitter.com/oauth/authorize?oauth_token='+tokens.get('oauth_token'));
+    if (system.getKey) // Windows
+      system.browse('http://api.twitter.com/oauth/authorize?oauth_token='+tokens.get('oauth_token'));
+    else
+  	  system.execute('open http://api.twitter.com/oauth/authorize?oauth_token='+tokens.get('oauth_token'));
 
-  	// wait for pin input
+  	// esperar por input do pin
   	writeln();
   	writeln('Type your'.green()+' PIN '.yellow()+'to authorize the app:'.green());
   	writeln(colors.bold.magenta);
@@ -165,16 +208,23 @@ clit = {
   	var tokens = new Record;
   	oauth.readList(tokens, '&', '=');
   	writeln(tokens.toString().cyan());
+  	
+  	if (tokens.get('screen_name')){
 
-  	writeln();
-  	writeln('Welcome '.white()+tokens.get('screen_name').toString().yellow(1)+'!'+colors.reset);
-  	writeln();
+    	writeln();
+    	writeln('Welcome '.white()+tokens.get('screen_name').toString().yellow(1)+'!'+colors.reset);
+    	writeln();
 
-  	var file = new Stream('config.json', 'w');
-  	file.write( JSON.stringify(tokens.toObject()) );
+    	var file = new Stream('config.json', 'w');
+    	file.write( JSON.stringify(tokens.toObject()) );
+  	} else {
+  	  write(ERROR_AUTH);
+  	  system.exit();
+  	}
   }
 };
 
+// handle arguments - route to methods
 var method = args[0];
 if (method && clit[method]) {
   clit[method]();

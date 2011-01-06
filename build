@@ -1,4 +1,9 @@
 #!/bin/bash
-zip app.zip *.js *.json
-cat jsdb app.zip > clit
-chmod +x clit
+zip temp.zip *.js *.json lib/*
+cat ./jsdb/jsdb_mac temp.zip > ./dist/osx/clit
+cat ./jsdb/jsdb_linux temp.zip > ./dist/linux/clit
+cat ./jsdb/jsdb.exe temp.zip > ./dist/win/clit.exe
+rm temp.zip
+chmod +x dist/osx/clit
+chmod +x dist/linux/clit
+echo ... && echo build complete

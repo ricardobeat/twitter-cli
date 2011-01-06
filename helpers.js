@@ -29,10 +29,14 @@ colors = {
 
 for(var c in colors){
 	String.prototype[c] = (function(c){
-		return function(bold){
-			var color = bold ? colors.bold[c] : colors[c];
-			return color + this + colors.reset;
-		};
+		if (system.getKey){ // windows' prompt doesn't support colors
+		  return function(){ return this; };
+		} else {
+		  return function(bold){
+  			var color = bold ? colors.bold[c] : colors[c];
+  			return color + this + colors.reset;
+  		};
+  	}
 	})(c);
 }
 
@@ -97,15 +101,18 @@ if (LANG == 'pt'){
 	var ERROR_API = '\nErro na API do Twitter. Foi mal.\n';
 	var ERROR_NOSUCHMETHOD = ('\nMétodos suportados: \n'+
 	  ':get [n]             -- tweets mais recentes \n'+
-	  ':search [string] [n] -- buscar pelos termos \n'+
+	  ':search [n] [string] -- buscar pelos termos \n'+
 	  ':post [text]         -- postar tweet \n'+
 	  ':data                -- exibir tokens oauth \n\n').replace(/:(\w+)/g, '$1'.yellow()).replace(/(\[\w+\])/g,'$1'.magenta());
+	var ERROR_AUTH = '\nErro ao fazer autorização OAuth. PIN errado?\n'.red(1);
+	
 } else {
 	var ERROR_NODATA = '\nError loading data. You need to authorize the app first via OAuth.'.red(1)+'\n';
 	var ERROR_API = '\nSomething went wrong with the request. Sorry.\n';
 	var ERROR_NOSUCHMETHOD = ('\nSupported methods: \n'+
 	  ':get [n]             -- get most recent tweets \n'+
-	  ':search [string] [n] -- search for the specified terms \n'+
+	  ':search [n] [string] -- search for the specified terms \n'+
 	  ':post [text]         -- post tweet \n'+
 	  ':data                -- display oauth tokens \n\n').replace(/:(\w+)/g, ' $1'.yellow()).replace(/(\[\w+\])/g,'$1'.magenta());
+	var ERROR_AUTH = '\nError authorizing app via OAuth. Wrong PIN?\n'.red(1);
 }

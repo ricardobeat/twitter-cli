@@ -1,0 +1,24 @@
+Clit
+=====
+
+A very basic _command-line interface_ for Twitter for OSX, Linux and Windows (!).
+
+Commands
+-------
+
+    get [n]             -- get most recent tweets
+    search [string] [n] -- search for the specified terms
+    post [text]         -- post tweet
+    data                -- display oauth tokens
+
+Usage
+-----
+
+You can have it two ways:
+
+1. Just download the "compiled" executable for your platform available in /dist. Extract to a directory and run `./clit authorize`.
+2. Clone this repo, run .ie. `./jsdb/jsdb_mac main.js authorize`;
+
+Simply running `./clit` will give you the list of available commands.
+
+Built on [JSDB](http://jsdb.org)
