@@ -1,0 +1,4 @@
+#!/bin/bash
+zip app.zip *.js *.json
+cat jsdb app.zip > clit
+chmod +x clit
